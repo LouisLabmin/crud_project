@@ -1,23 +1,38 @@
 // shared/js/visitors.js
-// This JavaScript file is responsible for logging visitor information asynchronously on every page load. 
-// It sends a POST request to a PHP script that records the visitor's IP address and other relevant data in the database. 
-// This allows the site owner to track visits and analyze traffic patterns without impacting the user experience, as the logging happens in the background
-//  without any page reloads or interruptions.
+// Logs visitor and updates live visitor count via AJAX
 
+console.log("visitors.js LOADED ✅");
 
-console.log("visitors.js LOADED");
+// Step 1: log visit
+fetch(window.APP_CONFIG.base + "/shared/ajax/log_visit.php", {
+    method: "POST"
+})
+.then(res => res.json())
 
-// Trigger visitor logging asynchronously
-fetch("/shared/log_visit.php", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
+// Step 2: validate logging
+.then(res => {
+    if (res.status !== 'success') {
+        throw new Error('Visit logging failed');
+    }
+
+    // Step 3: fetch updated count
+    return fetch(window.APP_CONFIG.base + "/shared/ajax/get_visit_count.php");
+})
+
+// Step 4: parse count
+.then(res => res.json())
+
+// Step 5: update UI
+.then(data => {
+    if (data.status === 'success') {
+        const el = document.getElementById('visitor_count');
+        if (el) {
+            el.textContent = data.total;
+        }
     }
 })
-.then(response => response.text())
-.then(result => {
-    console.log("Visit logged:", result);
-})
-.catch(error => {
-    console.error("Visit log failed:", error);
+
+// Step 6: error handling
+.catch(err => {
+    console.warn("Visitor tracking error:", err);
 });
