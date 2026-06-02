@@ -1,0 +1,69 @@
+# ---------------------------------------------------------
+# PHP ERROR REPORTING (dev only – keep commented in prod)
+# ---------------------------------------------------------
+# php_flag display_errors on
+# php_value error_reporting 32767
+
+# ---------------------------------------------------------
+# SECURITY HEADERS
+# ---------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+# ---------------------------------------------------------
+# ENABLE GZIP COMPRESSION
+# ---------------------------------------------------------
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# ---------------------------------------------------------
+# BROWSER CACHING
+# ---------------------------------------------------------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresDefault "access plus 1 month"
+    ExpiresByType text/css "access plus 30 days"
+    ExpiresByType application/javascript "access plus 30 days"
+</IfModule>
+
+# ---------------------------------------------------------
+# PROTECT SENSITIVE FILES
+# ---------------------------------------------------------
+<FilesMatch "\.(env|ini|log|sh|sql|bak|config|dist)$">
+    Require all denied
+</FilesMatch>
+
+# Extra protection for DB config
+<Files "db_config.php">
+    Require all denied
+</Files>
+
+Options -Indexes
+
+# ---------------------------------------------------------
+# CLEAN URL ROUTING
+# ---------------------------------------------------------
+RewriteEngine On
+RewriteBase /
+
+# 1. Never rewrite /public/
+RewriteCond %{REQUEST_URI} ^/public/ [NC]
+RewriteRule ^ - [L]
+
+# 2. Never rewrite /shared/
+RewriteCond %{REQUEST_URI} ^/shared/ [NC]
+RewriteRule ^ - [L]
+
+# 3. If file or directory exists, serve it
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# 4. Everything else → index.php
+RewriteRule ^ index.php [L]
