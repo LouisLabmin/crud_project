@@ -1,79 +1,158 @@
 <?php
 // shared/contact_form_report.php
-// This is the main page for viewing contact form messages in the admin panel. 
-// It includes a table to display messages based on their status (new, read, archived) and a detail panel to view message content.
-
+// Displays contact messages in a clean admin report interface with table + detail panel.
 
 declare(strict_types=1);
 
 require_once __DIR__ . '/../configuration/bootstrap.php';
-
-$page_title   = 'Contact Form Report';
-$page_scripts = ['/shared/js/contact_report.js'];
-$page_styles  = ['/css/stylesheet.php'];
-
-include_once __DIR__ . '/../includes/header.php';
 ?>
 
-<main class="container py-4">
-    <h1 class="mb-4">Contact Form Report</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Report</title>
 
-<!-- Filters -->
-<div class="mb-3 d-flex flex-wrap gap-2">
-    <button class="btn btn-outline-primary btn-sm filter-btn" type="button" title="New Contacts" data-status="new">New</button>
-    <button class="btn btn-outline-secondary btn-sm filter-btn" type="button" title="Read Messages" data-status="read">Read</button>
-    <button class="btn btn-outline-warning btn-sm filter-btn" type="button" title="Archived Messages" data-status="archived">Archived</button>
-    <button class="btn btn-outline-dark btn-sm filter-btn" type="button" title="All Messages" data-status="all">All</button>
+    <!-- ============================================================
+         LIBRARIES
+         ============================================================ -->
 
-    <!-- Close Button (styled as a button, but works as a link) -->
-    <a href="/reports/index.php" class="btn btn-outline-danger btn-sm" title="Close Report">Close</a>
-</div>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <div class="row">
-        <!-- Grid -->
-        <div class="col-md-7 mb-3">
-            <div class="card shadow-sm">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Messages</span>
-                    <small class="text-muted" id="contact_report_status_text">Showing new messages</small>
+    <!-- ============================================================
+         CUSTOM CSS
+         ============================================================ -->
+
+    <link href="<?= APP_BASE ?>/css/stylesheet.php" rel="stylesheet">
+
+    <!-- ============================================================
+         JS CONFIG
+         ============================================================ -->
+
+    <script>
+        window.APP_CONFIG = {
+            base: "<?= APP_BASE ?>"
+        };
+    </script>
+</head>
+
+<body class="bg-light">
+
+<div class="container py-4">
+
+    <!-- ============================================================
+         PAGE HEADER
+         ============================================================ -->
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">Contact Report</h3>
+
+        <a href="<?= APP_BASE ?>/main/index.php" class="btn btn-outline-danger btn-sm">
+            Close
+        </a>
+    </div>
+
+    <!-- ============================================================
+         FILTERS
+         ============================================================ -->
+
+    <div class="mb-3">
+        <div class="btn-group" role="group">
+            <button class="btn btn-outline-primary filter-btn" data-status="new">New</button>
+            <button class="btn btn-outline-secondary filter-btn" data-status="read">Read</button>
+            <button class="btn btn-outline-warning filter-btn" data-status="archived">Archived</button>
+            <button class="btn btn-outline-dark filter-btn" data-status="all">All</button>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         MAIN GRID
+         ============================================================ -->
+
+    <div class="row g-3">
+
+        <!-- ============================================================
+             LEFT: MESSAGE LIST
+             ============================================================ -->
+
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+
+                <div class="card-header">
+                    Message List
                 </div>
+
                 <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm mb-0" id="contact_report_table">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Created</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Filled by JS -->
-                            </tbody>
-                        </table>
-                    </div>
+
+                    <table class="table table-hover table-sm mb-0" id="contact_table">
+
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:70px;">ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">
+                                    Loading messages...
+                                </td>
+                            </tr>
+                        </tbody>
+
+                    </table>
+
                 </div>
+
             </div>
         </div>
 
-        <!-- Detail panel -->
-        <div class="col-md-5 mb-3">
-            <div class="card shadow-sm h-100">
+        <!-- ============================================================
+             RIGHT: MESSAGE DETAIL
+             ============================================================ -->
+
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100 d-flex flex-column">
+
                 <div class="card-header">
                     Message Details
                 </div>
-                <div class="card-body" id="contact_report_detail">
-                    <p class="text-muted mb-0">Select a message from the table to view details.</p>
+
+                <div class="card-body" id="detail_box">
+
+                    <p class="text-muted mb-0">
+                        Select a message from the table to view details
+                    </p>
+
                 </div>
+
                 <div class="card-footer d-flex gap-2">
-                    <button class="btn btn-success btn-sm" id="btn_mark_read" disabled>Mark As Read</button>
-                    <button class="btn btn-warning btn-sm" id="btn_archive" disabled>Archive</button>
+                    <button class="btn btn-success btn-sm" id="btn_read" disabled>
+                        Mark Read
+                    </button>
+                    <button class="btn btn-warning btn-sm" id="btn_archive" disabled>
+                        Archive
+                    </button>
                 </div>
+
             </div>
         </div>
-    </div>
-</main>
 
-<?php include_once __DIR__ . '/../includes/footer.php'; ?>
+    </div>
+
+</div>
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+
+<script src="<?= APP_BASE ?>/shared/js/contact_report.js"></script>
+
+</body>
+</html>

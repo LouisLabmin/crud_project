@@ -1,159 +1,204 @@
 // shared/js/contact_report.js
-// This JavaScript file manages the contact report page in the admin panel. It handles loading messages based on their status (new, read, archived),
-// displaying message details when a row is clicked, and providing buttons to mark messages as read or archived. 
-// The script uses AJAX to fetch message data from the server and update message statuses without needing to reload the page.
+// Handles contact report functionality: load messages, view details, update status.
 
-console.log("CONTACT REPORT JS LOADED");
+console.log("CONTACT REPORT JS LOADED ✅");
 
 (function () {
     'use strict';
 
     $(function () {
 
-        const $tableBody = $('#contact_report_table tbody');
-        const $statusText = $('#contact_report_status_text');
-        const $detail = $('#contact_report_detail');
-        const $btnMarkRead = $('#btn_mark_read');
-        const $btnArchive = $('#btn_archive');
+        // ============================================================
+        // CONFIG
+        // ============================================================
 
-        let currentStatus = 'new';
+        const BASE = window.APP_CONFIG.base;
+
+        const $tableBody = $('#contact_table tbody');
+        const $detail    = $('#detail_box');
+        const $btnRead   = $('#btn_read');
+        const $btnArch   = $('#btn_archive');
+
         let selectedId = null;
-        let selectedRowData = null;
+        let currentStatus = 'new';
 
-        function buildUrl(path) {
-            return window.APP_CONFIG.base + path;
-        }
+        // ============================================================
+        // LOAD MESSAGES
+        // ============================================================
 
-        function renderDetail(row) {
-            if (!row) {
-                $detail.html('<p class="text-muted mb-0">Select a message from the table to view details.</p>');
-                $btnMarkRead.prop('disabled', true);
-                $btnArchive.prop('disabled', true);
-                return;
-            }
+        function loadMessages(status = 'new') {
 
-            const html = `
-                <dl class="row mb-0">
-                    <dt class="col-sm-4">ID</dt>
-                    <dd class="col-sm-8">${row.id}</dd>
-
-                    <dt class="col-sm-4">Created</dt>
-                    <dd class="col-sm-8">${row.created_at}</dd>
-
-                    <dt class="col-sm-4">Name</dt>
-                    <dd class="col-sm-8">${row.contact_name}</dd>
-
-                    <dt class="col-sm-4">Email</dt>
-                    <dd class="col-sm-8">${row.email}</dd>
-
-                    <dt class="col-sm-4">Number</dt>
-                    <dd class="col-sm-8">${row.contact_number}</dd>
-
-                    <dt class="col-sm-4">IP Address</dt>
-                    <dd class="col-sm-8">${row.ip_address}</dd>
-
-                    <dt class="col-sm-4">Message</dt>
-                    <dd class="col-sm-8"><pre class="contact-report-message">${row.contact_message}</pre></dd>
-                </dl>
-            `;
-            $detail.html(html);
-
-            $btnMarkRead.prop('disabled', row.read_msg == 1);
-            $btnArchive.prop('disabled', row.archived_msg == 1);
-        }
-
-        function loadMessages(status) {
             currentStatus = status;
             selectedId = null;
-            selectedRowData = null;
-            renderDetail(null);
 
-            let label = 'Showing new messages';
-            if (status === 'read') label = 'Showing read messages';
-            if (status === 'archived') label = 'Showing archived messages';
-            if (status === 'all') label = 'Showing all messages';
+            clearDetail();
 
-            $statusText.text(label);
+            $tableBody.html(`
+                <tr>
+                    <td colspan="3" class="text-center text-muted">Loading...</td>
+                </tr>
+            `);
 
-            $.ajax({
-                url: buildUrl('/shared/ajax/contact_report_list.php'),
-                method: 'GET',
-                data: { status },
-                dataType: 'json'
-            })
-                .done(function (res) {
-                    if (res.status !== 'success') {
-                        $tableBody.html('<tr><td colspan="7" class="text-center text-danger">Unable to load messages.</td></tr>');
-                        return;
-                    }
+            $.get(BASE + '/shared/ajax/contact_report_list.php', { status }, function (res) {
 
-                    const rows = res.data;
+                if (res.status !== 'success') {
+                    showTableError("Failed to load messages");
+                    return;
+                }
 
-                    if (!rows.length) {
-                        $tableBody.html('<tr><td colspan="7" class="text-center text-muted">No messages found.</td></tr>');
-                        return;
-                    }
+                if (!res.data || !res.data.length) {
+                    showTableError("No messages found", true);
+                    return;
+                }
 
-                    $tableBody.empty();
+                $tableBody.empty();
 
-                    rows.forEach(row => {
-                        const tr = $('<tr></tr>')
-                            .attr('data-id', row.id)
-                            .data('row', row);
+                res.data.forEach(row => {
 
-                        tr.append(`<td>${row.id}</td>`);
-                        tr.append(`<td>${row.created_at}</td>`);
-                        tr.append(`<td>${row.contact_name}</td>`);
-                        tr.append(`<td>${row.email}</td>`);
-                      
-                        $tableBody.append(tr);
-                    });
-                })
-                .fail(function () {
-                    $tableBody.html('<tr><td colspan="7" class="text-center text-danger">Server error loading messages.</td></tr>');
+                    const isUnread = row.read_msg == 0;
+
+                    const tr = $(`
+                        <tr class="${isUnread ? 'table-warning' : ''}" data-id="${row.id}">
+                            <td>${row.id}</td>
+                            <td>${row.contact_name || ''}</td>
+                            <td>${row.email || ''}</td>
+                        </tr>
+                    `);
+
+                    tr.data('row', row);
+                    $tableBody.append(tr);
                 });
+
+            }, 'json')
+            .fail(function () {
+                showTableError("Server error");
+            });
         }
 
-        $tableBody.on('click', 'tr', function () {
-            const row = $(this).data('row');
+        // ============================================================
+        // TABLE ERROR / EMPTY
+        // ============================================================
 
-            $tableBody.find('tr').removeClass('table-active');
-            $(this).addClass('table-active');
+        function showTableError(message, muted = false) {
+            $tableBody.html(`
+                <tr>
+                    <td colspan="3" class="text-center ${muted ? 'text-muted' : 'text-danger'}">
+                        ${message}
+                    </td>
+                </tr>
+            `);
+        }
+
+        // ============================================================
+        // CLEAR DETAIL
+        // ============================================================
+
+        function clearDetail() {
+            $detail.html(`
+                <p class="text-muted mb-0">
+                    Select a message from the table to view details
+                </p>
+            `);
+
+            $btnRead.prop('disabled', true);
+            $btnArch.prop('disabled', true);
+        }
+
+        // ============================================================
+        // SHOW DETAILS
+        // ============================================================
+
+        function showDetail(row) {
+
+            $detail.html(`
+                <div class="mb-3">
+                    <strong>Name</strong>
+                    <div class="border rounded p-2 bg-light">${row.contact_name || '-'}</div>
+                </div>
+
+                <div class="mb-3">
+                    <strong>Email</strong>
+                    <div class="border rounded p-2 bg-light">${row.email || '-'}</div>
+                </div>
+
+                <div class="mb-3">
+                    <strong>Contact Number</strong>
+                    <div class="border rounded p-2 bg-light">${row.contact_number || '-'}</div>
+                </div>
+
+                <div class="mb-3">
+                    <strong>Message</strong>
+                    <div class="border rounded p-2 bg-light" style="max-height:200px; overflow:auto;">
+                        ${row.contact_message || ''}
+                    </div>
+                </div>
+            `);
+
+            $btnRead.prop('disabled', row.read_msg == 1);
+            $btnArch.prop('disabled', row.archived_msg == 1);
+        }
+
+        // ============================================================
+        // ROW CLICK
+        // ============================================================
+
+        $tableBody.on('click', 'tr', function () {
+
+            const row = $(this).data('row');
+            if (!row) return;
 
             selectedId = row.id;
-            selectedRowData = row;
-            renderDetail(row);
+
+            $('#contact_table tr').removeClass('table-active');
+            $(this).addClass('table-active');
+
+            showDetail(row);
         });
+
+        // ============================================================
+        // FILTER BUTTONS
+        // ============================================================
 
         $('.filter-btn').on('click', function () {
             loadMessages($(this).data('status'));
         });
 
+        // ============================================================
+        // UPDATE MESSAGE
+        // ============================================================
+
         function updateMessage(action) {
+
             if (!selectedId) return;
 
-            $.ajax({
-                url: buildUrl('/shared/ajax/contact_report_update.php'),
-                method: 'POST',
-                data: { id: selectedId, action },
-                dataType: 'json'
-            })
-                .done(function (res) {
-                    if (res.status === 'success') {
-                        loadMessages(currentStatus);
-                    } else {
-                        alert(res.message);
-                    }
-                })
-                .fail(function () {
-                    alert('Server error updating message.');
-                });
+            $.post(BASE + '/shared/ajax/contact_report_update.php', {
+                id: selectedId,
+                action: action
+            }, function (res) {
+
+                if (res.status === 'success') {
+                    loadMessages(currentStatus);
+                    clearDetail();
+                } else {
+                    alert(res.message || 'Update failed');
+                }
+
+            }, 'json')
+            .fail(function () {
+                alert('Server error updating message');
+            });
         }
 
-        $('#btn_mark_read').on('click', () => updateMessage('mark_read'));
-        $('#btn_archive').on('click', () => updateMessage('archive'));
+        // Buttons
+        $btnRead.on('click', () => updateMessage('mark_read'));
+        $btnArch.on('click', () => updateMessage('archive'));
 
-        loadMessages('new');
+        // ============================================================
+        // INIT
+        // ============================================================
+
+        loadMessages();
+
     });
 
 })();
