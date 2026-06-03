@@ -6,6 +6,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../configuration/bootstrap.php';
+include_once __DIR__ . '/../includes/header.php';
 
 // -------------------------------------------------------
 // CSRF TOKEN
@@ -153,5 +154,9 @@ if (empty($_SESSION['csrf_token'])) {
 <script src="<?= APP_BASE ?>/shared/js/contact_form.js"></script>
 <script src="<?= APP_BASE ?>/shared/js/visitors.js"></script>
 
+
 </body>
 </html>
+<?php
+include_once __DIR__ . '/../includes/footer.php';
+?>

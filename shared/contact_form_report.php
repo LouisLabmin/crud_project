@@ -5,6 +5,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../configuration/bootstrap.php';
+include_once __DIR__ . '/../includes/header.php';
 ?>
 
 <!DOCTYPE html>
@@ -50,10 +51,6 @@ require_once __DIR__ . '/../configuration/bootstrap.php';
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="mb-0">Contact Report</h3>
-
-        <a href="<?= APP_BASE ?>/main/index.php" class="btn btn-outline-danger btn-sm">
-            Close
-        </a>
     </div>
 
     <!-- ============================================================
@@ -154,5 +151,10 @@ require_once __DIR__ . '/../configuration/bootstrap.php';
 
 <script src="<?= APP_BASE ?>/shared/js/contact_report.js"></script>
 
+
 </body>
 </html>
+
+<?php
+include_once __DIR__ . '/../includes/footer.php';
+?>

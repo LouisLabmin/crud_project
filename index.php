@@ -1,70 +1,99 @@
 <?php
 // index.php
-//echo "<pre>";
-//print_r($_SERVER);
-//echo "</pre>";
-//die(); 
+// Main landing page with navigation and welcome section
+
+declare(strict_types=1);
 
 require_once __DIR__ . '/configuration/bootstrap.php';
 
-$pageTitle = "Welcome";
-include_once __DIR__ . '/includes/header.php';
+$pageTitle = "Welcome to My App";
+$showWelcome = true;
 
+include_once __DIR__ . '/includes/header.php';
 ?>
 
-<!-- HERO SLIDESHOW -->
-<div id="homeCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel">
 
-    <div class="carousel-indicators">
-        <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="0" class="active"></button>
-        <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="1"></button>
-        <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="2"></button>
-        <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="3"></button>
+<!-- ============================================================
+     MAIN CONTENT
+     ============================================================ -->
+
+<div class="container">
+
+    <div class="text-center mb-4">
+        <h2 class="mb-2">Welcome 👋</h2>
+        <p class="text-muted">
+            This application demonstrates a full-stack PHP system including
+            contact forms, analytics tracking, and reporting dashboards.
+        </p>
     </div>
 
-    <div class="carousel-inner">
+    <!-- ============================================================
+         FEATURE CARDS
+         ============================================================ -->
 
-        <div class="carousel-item active">
-            <img src="<?= APP_BASE ?>/images/slide_dashboards.jpg" class="d-block w-100 home-slide-img" alt="Dashboards">
-            <div class="carousel-caption d-none d-md-block">
-                <h2>Basic Dashboards</h2>
-                <p>Clear, simple, and effective reporting visuals.</p>
+    <div class="row g-4">
+
+        <!-- Contact Form -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 text-center">
+
+                <div class="card-body">
+                    <h5 class="card-title">📩 Contact Form</h5>
+
+                    <p class="card-text text-muted">
+                        Submit and manage user messages with validation and security.
+                    </p>
+
+                    <a href="<?= APP_BASE ?>/main/index.php" class="btn btn-primary btn-sm">
+                        Open
+                    </a>
+                </div>
+
             </div>
         </div>
 
-        <div class="carousel-item">
-            <img src="<?= APP_BASE ?>/images/slide_excel.jpg" class="d-block w-100 home-slide-img" alt="Excel Reporting">
-            <div class="carousel-caption d-none d-md-block">
-                <h2>Excel Reporting</h2>
-                <p>Data cleanup, formatting, and structured reporting.</p>
+        <!-- Site Visit Report -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 text-center">
+
+                <div class="card-body">
+                    <h5 class="card-title">📊 Site Visit Report</h5>
+
+                    <p class="card-text text-muted">
+                        View visitor analytics including browser, device, and location data.
+                    </p>
+
+                    <a href="<?= APP_BASE ?>/reports/site_visit_report.php" class="btn btn-success btn-sm">
+                        View Report
+                    </a>
+                </div>
+
             </div>
         </div>
 
-        <div class="carousel-item">
-            <img src="<?= APP_BASE ?>/images/slide_powershell.jpg" class="d-block w-100 home-slide-img" alt="PowerShell">
-            <div class="carousel-caption d-none d-md-block">
-                <h2>PowerShell & Scripting</h2>
-                <p>Automation, batch tasks, and command-line solutions.</p>
-            </div>
-        </div>
+        <!-- Analytics Report -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 text-center">
 
-        <div class="carousel-item">
-            <img src="<?= APP_BASE ?>/images/slide_services.jpg" class="d-block w-100 home-slide-img" alt="Professional Services">
-            <div class="carousel-caption d-none d-md-block">
-                <h2>Professional Services</h2>
-                <p>Administrative, technical, and community support.</p>
+                <div class="card-body">
+                    <h5 class="card-title">📈 Contact Analytics</h5>
+
+                    <p class="card-text text-muted">
+                        Manage contact messages, mark as read, and review submission history.
+                    </p>
+
+                    <a href="<?= APP_BASE ?>/shared/contact_form_report.php" class="btn btn-warning btn-sm">
+                        View Analytics
+                    </a>
+                </div>
+
             </div>
         </div>
 
     </div>
-
-    <button class="carousel-control-prev" type="button" data-bs-target="#homeCarousel" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon"></span>
-    </button>
-
-    <button class="carousel-control-next" type="button" data-bs-target="#homeCarousel" data-bs-slide="next">
-        <span class="carousel-control-next-icon"></span>
-    </button>
 
 </div>
 
+<?php
+include_once __DIR__ . '/includes/footer.php';
+?>
