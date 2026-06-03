@@ -48,14 +48,16 @@ require_once __DIR__ . '/../configuration/bootstrap.php';
      NAVBAR ✅ (NOW GLOBAL)
      ============================================================ -->
 
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+<nav class="navbar navbar-expand-lg shadow-sm mb-4" style="background-color:#3498db;">
     <div class="container-fluid">
 
         <!-- Brand -->
-        <a class="navbar-brand" href="<?= APP_BASE ?>/index.php">My CRUD App</a>
+        <a class="navbar-brand text-white fw-bold" href="<?= APP_BASE ?>/index.php">
+            My CRUD App
+        </a>
 
         <!-- Mobile toggle -->
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
             <span class="navbar-toggler-icon"></span>
         </button>
 
@@ -64,25 +66,25 @@ require_once __DIR__ . '/../configuration/bootstrap.php';
             <ul class="navbar-nav ms-auto">
 
                 <li class="nav-item">
-                    <a class="nav-link" href="<?= APP_BASE ?>/index.php">
+                    <a class="nav-link text-white" title="Home Page" href="<?= APP_BASE ?>/index.php">
                         Home Page
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link" href="<?= APP_BASE ?>/main/index.php">
+                    <a class="nav-link text-white" title="Contact Form" href="<?= APP_BASE ?>/main/index.php">
                         Contact Form
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link" href="<?= APP_BASE ?>/reports/site_visit_report.php">
+                    <a class="nav-link text-white" title="Site Visit Report" href="<?= APP_BASE ?>/reports/site_visit_report.php">
                         Site Visit Report
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link" href="<?= APP_BASE ?>/shared/contact_form_report.php">
+                    <a class="nav-link text-white" title="Analytics Report" href="<?= APP_BASE ?>/shared/contact_form_report.php">
                         Analytics Report
                     </a>
                 </li>
@@ -99,7 +101,7 @@ require_once __DIR__ . '/../configuration/bootstrap.php';
 
 <div class="container py-4 text-center">
 
-    <h1 class="mb-3">Welcome to My CRUD App</h1>
+    <h3 class="mb-3">Welcome to My CRUD App</h3>
 
     <p class="text-muted">
         This is a simple CRUD (Create, Read, Update, Delete) application

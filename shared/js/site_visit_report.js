@@ -1,7 +1,5 @@
 // site_visit_report.js
-// Handles loading dashboard data, charts, table, pagination, sorting, search
-
-console.log("site_visit_report.js LOADED ✅");
+// Dashboard controller with gradient-style charts
 
 $(function () {
 
@@ -15,7 +13,7 @@ $(function () {
     let sortDir = 'desc';
     let search = '';
 
-    let charts = {}; // store Chart.js instances
+    let charts = {};
 
     // ============================================================
     // LOAD DATA
@@ -25,14 +23,8 @@ $(function () {
         showLoading();
 
         $.get(BASE + '/shared/ajax/site_visit.php', {
-            page,
-            limit,
-            sort_col: sortCol,
-            sort_dir: sortDir,
-            search
+            page, limit, sort_col: sortCol, sort_dir: sortDir, search
         }, function (res) {
-
-            console.log("API RESPONSE:", res);
 
             if (!res || res.status !== 'success') {
                 showError("Failed to load data");
@@ -41,31 +33,17 @@ $(function () {
 
             total = res.pagination?.total || 0;
 
-            // ----------------------------------
-            // SUMMARY
-            // ----------------------------------
             $('#total_visits').text(res.summary?.total ?? 0);
             $('#unique_visits').text(res.summary?.unique ?? 0);
             $('#country_count').text(res.summary?.countries ?? 0);
 
-            // ----------------------------------
-            // TABLE
-            // ----------------------------------
             renderTable(res.visits || []);
-
-            // ----------------------------------
-            // PAGINATION + RANGE
-            // ----------------------------------
             renderPagination();
             renderRange();
-
-            // ✅ CRITICAL FIX (YOU WERE MISSING THIS)
             renderCharts(res.charts || {});
 
         }, 'json')
-        .fail(function () {
-            showError("Server error");
-        });
+        .fail(() => showError("Server error"));
     }
 
     // ============================================================
@@ -73,11 +51,10 @@ $(function () {
     // ============================================================
     function renderTable(rows) {
 
-        const $t = $('#visitTable');
-        $t.empty();
+        const $t = $('#visitTable').empty();
 
         if (!rows.length) {
-            $t.html(`<tr><td colspan="6" class="text-center text-muted">No data found</td></tr>`);
+            $t.html(`<tr><td colspan="6" class="text-center text-muted">No data</td></tr>`);
             return;
         }
 
@@ -101,38 +78,21 @@ $(function () {
     function renderPagination() {
 
         const pages = Math.ceil(total / limit);
-        const $p = $('#pagination');
-        $p.empty();
+        const $p = $('#pagination').empty();
 
         if (pages <= 1) return;
 
-        $p.append(`
-            <button class="btn btn-sm btn-outline-primary me-1"
-                ${page === 1 ? 'disabled' : ''} id="prev">Prev</button>
-        `);
+        $p.append(`<button class="btn btn-sm btn-outline-primary" ${page===1?'disabled':''} id="prev">Prev</button>`);
 
-        for (let i = Math.max(1, page - 2); i <= Math.min(pages, page + 2); i++) {
-            $p.append(`
-                <button class="btn btn-sm ${i === page ? 'btn-primary' : 'btn-outline-primary'} mx-1 pageBtn"
-                    data-p="${i}">
-                    ${i}
-                </button>
-            `);
+        for (let i=Math.max(1,page-2); i<=Math.min(pages,page+2); i++) {
+            $p.append(`<button class="btn btn-sm ${i===page?'btn-primary':'btn-outline-primary'} pageBtn" data-p="${i}">${i}</button>`);
         }
 
-        $p.append(`
-            <button class="btn btn-sm btn-outline-primary ms-1"
-                ${page === pages ? 'disabled' : ''} id="next">Next</button>
-        `);
+        $p.append(`<button class="btn btn-sm btn-outline-primary" ${page===pages?'disabled':''} id="next">Next</button>`);
 
-        // EVENTS
-        $('#prev').off().click(() => { page--; load(); });
-        $('#next').off().click(() => { page++; load(); });
-
-        $('.pageBtn').off().click(function () {
-            page = $(this).data('p');
-            load();
-        });
+        $('#prev').off().click(()=>{ page--; load(); });
+        $('#next').off().click(()=>{ page++; load(); });
+        $('.pageBtn').off().click(function(){ page=$(this).data('p'); load(); });
     }
 
     // ============================================================
@@ -145,20 +105,16 @@ $(function () {
             return;
         }
 
-        const start = (page - 1) * limit + 1;
-        const end = Math.min(page * limit, total);
+        const start = (page-1)*limit + 1;
+        const end = Math.min(page*limit, total);
 
         $('#range').text(`Showing ${start}–${end} of ${total}`);
     }
 
     // ============================================================
-    // CHARTS ✅ (FULL FIX)
+    // CHARTS WITH GRADIENT STYLE ✅
     // ============================================================
     function renderCharts(data) {
-
-        console.log("CHART DATA:", data);
-
-        if (!data) return;
 
         buildChart('countryChart', 'pie', data.country);
         buildChart('deviceChart', 'doughnut', data.device);
@@ -171,36 +127,88 @@ $(function () {
         const labels = Object.keys(obj);
         const values = Object.values(obj);
 
-        const ctx = document.getElementById(id);
+        const canvas = document.getElementById(id);
+        if (!canvas) return;
 
-        if (!ctx) return;
+        const ctx = canvas.getContext('2d');
 
-        // ✅ destroy old chart
-        if (charts[id]) {
-            charts[id].destroy();
-        }
+        if (charts[id]) charts[id].destroy();
+
+        const gradients = generateGradients(ctx, values.length);
 
         charts[id] = new Chart(ctx, {
             type: type,
             data: {
                 labels: labels,
                 datasets: [{
-                    data: values
+                    data: values,
+                    backgroundColor: gradients,
+                    borderColor: '#ffffff',
+                    borderWidth: 1
                 }]
             },
             options: {
-                maintainAspectRatio: false
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: (type === 'pie' || type === 'doughnut')
+                    }
+                },
+                scales: type === 'bar' ? {
+                    y: { beginAtZero: true }
+                } : {}
             }
         });
     }
 
     // ============================================================
-    // SORTING
+    // GRADIENT GENERATOR ✅ (KEY FEATURE)
     // ============================================================
-    $('.sortable').on('click', function () {
+    function generateGradients(ctx, count) {
+
+        const baseColors = [
+            '#3498db', // base brand
+            '#5dade2',
+            '#85c1e9',
+            '#aed6f1',
+            '#2ecc71',
+            '#e67e22',
+            '#9b59b6'
+        ];
+
+        const gradients = [];
+
+        for (let i = 0; i < count; i++) {
+
+            const color = baseColors[i % baseColors.length];
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+
+            gradient.addColorStop(0, color);
+            gradient.addColorStop(1, hexToRGBA(color, 0.2)); // fade
+
+            gradients.push(gradient);
+        }
+
+        return gradients;
+    }
+
+    // convert HEX → RGBA (for fade effect)
+    function hexToRGBA(hex, alpha) {
+
+        const r = parseInt(hex.slice(1,3), 16);
+        const g = parseInt(hex.slice(3,5), 16);
+        const b = parseInt(hex.slice(5,7), 16);
+
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    // ============================================================
+    // SORT
+    // ============================================================
+    $('.sortable').click(function() {
 
         const col = $(this).data('col');
-        if (!col) return;
 
         sortDir = (sortCol === col && sortDir === 'asc') ? 'desc' : 'asc';
         sortCol = col;
@@ -210,11 +218,11 @@ $(function () {
     });
 
     // ============================================================
-    // SEARCH (DEBOUNCED)
+    // SEARCH
     // ============================================================
     let timer;
 
-    $('#search').on('keyup', function () {
+    $('#search').keyup(function() {
 
         clearTimeout(timer);
 
@@ -228,29 +236,22 @@ $(function () {
     // ============================================================
     // UTILITIES
     // ============================================================
-
     function showLoading() {
-        $('#visitTable').html(`
-            <tr><td colspan="6" class="text-center text-muted">Loading...</td></tr>
-        `);
+        $('#visitTable').html(`<tr><td colspan="6" class="text-center text-muted">Loading...</td></tr>`);
     }
 
     function showError(msg) {
-        $('#visitTable').html(`
-            <tr><td colspan="6" class="text-center text-danger">${msg}</td></tr>
-        `);
+        $('#visitTable').html(`<tr><td colspan="6" class="text-danger text-center">${msg}</td></tr>`);
     }
 
     function safe(val) {
         return (val ?? '').toString()
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
+            .replace(/&/g,"&amp;")
+            .replace(/</g,"&lt;")
+            .replace(/>/g,"&gt;");
     }
 
-    // ============================================================
     // INIT
-    // ============================================================
     load();
 
 });

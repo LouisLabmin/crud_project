@@ -22,7 +22,9 @@
         </div>
 
         <!-- RIGHT: OPTIONAL (EMPTY / FUTURE USE) -->
-        <div style="width:150px;"></div>
+                <div class="small text-center text-muted flex-grow-1">
+            Vibe AI Technology used for code generation
+        </div>
 
     </div>
 
