@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 // Dev Environment - Dev DB Credentials
 return [
-    'host' => '41.193.5.60',
+    'host' => 'localhost',
     'dbname' => 'louisvr_portfolio_dev',
-    'user' => 'louisvr_master',
+    'user' => 'louis',
     'pass' => 'QWeDcxzao017Y',
 ];
 

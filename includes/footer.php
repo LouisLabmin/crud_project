@@ -23,7 +23,7 @@
 
         <!-- RIGHT: OPTIONAL (EMPTY / FUTURE USE) -->
                 <div class="small text-center text-muted flex-grow-1">
-            Vibe AI Technology used for code generation
+            Vibe Development with AI Technology used for code generation
         </div>
 
     </div>
