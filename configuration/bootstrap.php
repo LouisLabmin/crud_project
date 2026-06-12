@@ -7,7 +7,7 @@
 declare(strict_types=1);
 
 // -------------------------------------------------------
-// DEVELOPMENT ERROR REPORTING
+// 1. Development Error Reporting
 // -------------------------------------------------------
 
 ini_set('display_errors', '1');
@@ -15,32 +15,28 @@ ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
 // -------------------------------------------------------
-// 1. Load DB Credentials
+// 2. Load Environment Configuration
 // -------------------------------------------------------
 
-$creds = require __DIR__ . '/../secure/db_config.php';
+$envFile = dirname(__DIR__) . '/.env';
 
-$host    = $creds['host'];
-$dbname  = $creds['dbname'];
-$db_user = $creds['user'];
-$db_pass = $creds['pass'];
+if (!file_exists($envFile)) {
+    throw new RuntimeException(
+        '.env file not found: ' . $envFile
+    );
+}
 
-// -------------------------------------------------------
-// 2. Database Connection Configuration
-// -------------------------------------------------------
-
-$dsn = sprintf(
-    'mysql:host=%s;port=3306;dbname=%s;charset=utf8mb4;connect_timeout=30',
-    $host,
-    $dbname
+$env = parse_ini_file(
+    $envFile,
+    false,
+    INI_SCANNER_TYPED
 );
 
-$pdo_options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false,
-    PDO::ATTR_TIMEOUT            => 30,
-];
+if ($env === false) {
+    throw new RuntimeException(
+        'Unable to parse .env file.'
+    );
+}
 
 // -------------------------------------------------------
 // 3. Start Session
@@ -51,107 +47,93 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // -------------------------------------------------------
-// 4. Create Database Connection
+// 4. Database Configuration
 // -------------------------------------------------------
 
-$maxRetries   = 5;
-$retryDelay   = 3;
-$pdo          = null;
-$lastException = null;
+$host    = $env['DB_HOST'] ?? '';
+$port    = $env['DB_PORT'] ?? 3306;
+$dbname  = $env['DB_NAME'] ?? '';
+$db_user = $env['DB_USER'] ?? '';
+$db_pass = $env['DB_PASS'] ?? '';
 
-for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+$dsn = sprintf(
+    'mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4',
+    $host,
+    $port,
+    $dbname
+);
 
-    try {
-
-        $startTime = microtime(true);
-
-        $pdo = new PDO(
-            $dsn,
-            $db_user,
-            $db_pass,
-            $pdo_options
-        );
-
-        // Verify connection
-        $pdo->query('SELECT 1');
-
-        error_log(
-            sprintf(
-                '[DB] Connected successfully in %.2f seconds (attempt %d)',
-                microtime(true) - $startTime,
-                $attempt
-            )
-        );
-
-        break;
-
-    } catch (PDOException $e) {
-
-        $lastException = $e;
-
-        error_log(
-            sprintf(
-                '[DB] Connection failed (attempt %d/%d): %s',
-                $attempt,
-                $maxRetries,
-                $e->getMessage()
-            )
-        );
-
-        if ($attempt < $maxRetries) {
-            sleep($retryDelay);
-        }
-    }
-}
+$pdo_options = [
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES   => false,
+    PDO::ATTR_TIMEOUT            => 60,
+];
 
 // -------------------------------------------------------
-// 5. Connection Failure Handling
+// 5. Application Configuration
 // -------------------------------------------------------
 
-if (!$pdo) {
+define(
+    'APP_ENV',
+    $env['APP_ENV'] ?? 'development'
+);
 
-    error_log(
-        '[DB] All connection attempts failed. Last error: ' .
-        ($lastException
-            ? $lastException->getMessage()
-            : 'Unknown error')
-    );
+define(
+    'APP_DEBUG',
+    filter_var(
+        $env['APP_DEBUG'] ?? true,
+        FILTER_VALIDATE_BOOLEAN
+    )
+);
 
-    http_response_code(503);
-
-    die(
-        'Database service temporarily unavailable. Please try again later.'
-    );
-}
-
-// -------------------------------------------------------
-// 6. Application Configuration
-// -------------------------------------------------------
-
-date_default_timezone_set('Africa/Johannesburg');
-
-// -------------------------------------------------------
-// 7. Application Constants
-// -------------------------------------------------------
-
-define('APP_ENV', 'development');
-
-define('APP_DEBUG', true);
-
-define('APP_NAME', 'My Portfolio');
+define(
+    'APP_NAME',
+    $env['APP_NAME'] ?? 'My Portfolio'
+);
 
 define(
     'APP_BASE',
-    'http://10.0.0.121/crud_project'
+    $env['APP_BASE'] ?? ''
 );
 
 define(
     'APP_TZ',
-    'Africa/Johannesburg'
+    $env['APP_TZ'] ?? 'Africa/Johannesburg'
 );
 
 // -------------------------------------------------------
-// 8. Global Configuration Array
+// 6. Timezone
+// -------------------------------------------------------
+
+date_default_timezone_set(APP_TZ);
+
+// -------------------------------------------------------
+// 7. PHP Error Reporting
+// -------------------------------------------------------
+
+if (APP_DEBUG) {
+
+    ini_set('display_errors', '1');
+    ini_set('display_startup_errors', '1');
+
+    error_reporting(E_ALL);
+
+} else {
+
+    ini_set('display_errors', '0');
+
+    error_reporting(0);
+}
+
+// -------------------------------------------------------
+// 8. Create Database Connection
+// -------------------------------------------------------
+
+$pdo = require __DIR__ . '/../secure/db_connect.php';
+
+// -------------------------------------------------------
+// 9. Global Configuration Array
 // -------------------------------------------------------
 
 $config = [
@@ -165,7 +147,7 @@ $config = [
 $GLOBALS['APP_OPTIONS'] = $config;
 
 // -------------------------------------------------------
-// 9. Convenience Variables (Optional)
+// 10. Convenience Variables
 // -------------------------------------------------------
 
 $baseUrl   = APP_BASE;

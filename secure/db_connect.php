@@ -1,25 +1,45 @@
 <?php
 /**
  * secure/db_connect.php
- * Standard PDO connection with timeout and retry support.
  *
- * Requires:
- * $dsn
- * $db_user
- * $db_pass
- * $pdo_options
+ * PDO connection handler with:
+ * - Connection retries
+ * - Connection timeout support
+ * - Connection validation
+ * - Development diagnostics
+ * - Production-safe failures
+ *
+ * Required variables:
+ *   $dsn
+ *   $db_user
+ *   $db_pass
+ *   $pdo_options
+ *
+ * Returns:
+ *   $pdo
  */
 
-$maxRetries = 3;
-$retryDelay = 2; // seconds
+declare(strict_types=1);
 
-// Ensure timeout is set
-$pdo_options[PDO::ATTR_TIMEOUT] = 60;
+// -------------------------------------------------------
+// Connection Configuration
+// -------------------------------------------------------
 
-// Add MySQL connect timeout if not already present
-if (strpos($dsn, 'connect_timeout=') === false) {
+$maxRetries = 5;
+$retryDelay = 3;
+
+// Respect bootstrap setting if already defined
+$pdo_options[PDO::ATTR_TIMEOUT] =
+    $pdo_options[PDO::ATTR_TIMEOUT] ?? 60;
+
+// Ensure MySQL connect timeout exists
+if (stripos($dsn, 'connect_timeout=') === false) {
     $dsn .= ';connect_timeout=60';
 }
+
+// -------------------------------------------------------
+// Connection Attempt
+// -------------------------------------------------------
 
 $pdo = null;
 $lastException = null;
@@ -28,7 +48,7 @@ for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
 
     try {
 
-        $start = microtime(true);
+        $startTime = microtime(true);
 
         $pdo = new PDO(
             $dsn,
@@ -37,13 +57,21 @@ for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
             $pdo_options
         );
 
-        // Verify connection is actually usable
+        // Validate connection
         $pdo->query('SELECT 1');
 
-        $elapsed = round(microtime(true) - $start, 2);
+        $elapsedTime = round(
+            microtime(true) - $startTime,
+            2
+        );
 
-        // Uncomment for diagnostics
-        // error_log("Database connected in {$elapsed}s on attempt {$attempt}");
+        error_log(
+            sprintf(
+                '[DB] Connected in %.2fs (Attempt %d)',
+                $elapsedTime,
+                $attempt
+            )
+        );
 
         break;
 
@@ -51,10 +79,9 @@ for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
 
         $lastException = $e;
 
-        // Uncomment for diagnostics
         error_log(
             sprintf(
-                'DB connection attempt %d/%d failed: %s',
+                '[DB] Connection failed (%d/%d): %s',
                 $attempt,
                 $maxRetries,
                 $e->getMessage()
@@ -67,21 +94,47 @@ for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
     }
 }
 
+// -------------------------------------------------------
+// Connection Failure Handling
+// -------------------------------------------------------
+
 if (!$pdo) {
 
-    // Development diagnostics
+    $message = $lastException
+        ? $lastException->getMessage()
+        : 'Unknown database error';
+
+    error_log(
+        '[DB] All connection attempts failed: '
+        . $message
+    );
+
+    http_response_code(503);
+
     if (
-        defined('APP_ENV') &&
-        APP_ENV === 'development'
+        defined('APP_DEBUG') &&
+        APP_DEBUG === true
     ) {
         die(
             'Database connection failed after '
             . $maxRetries
-            . ' attempts: '
-            . $lastException->getMessage()
+            . ' attempts.<br><br>'
+            . htmlspecialchars(
+                $message,
+                ENT_QUOTES,
+                'UTF-8'
+            )
         );
     }
 
-    // Production-safe message
-    die('Database connection failed.');
+    die(
+        'Database service temporarily unavailable. '
+        . 'Please try again later.'
+    );
 }
+
+// -------------------------------------------------------
+// Connection Available
+// -------------------------------------------------------
+
+return $pdo;
