@@ -84,7 +84,7 @@ require_once __DIR__ . '/../configuration/bootstrap.php';
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link text-white" title="Analytics Report" href="<?= APP_BASE ?>/shared/contact_form_report.php">
+                    <a class="nav-link text-white" title="Analytics Report" href="<?= APP_BASE ?>/reports/contact_form_report.php">
                         Analytics Report
                     </a>
                 </li>

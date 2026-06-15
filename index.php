@@ -82,7 +82,7 @@ include_once __DIR__ . '/includes/header.php';
                         Manage contact messages, mark as read, and review submission history.
                     </p>
 
-                    <a href="<?= APP_BASE ?>/shared/contact_form_report.php" class="btn btn-warning btn-sm">
+                    <a href="<?= APP_BASE ?>/reports/contact_form_report.php" class="btn btn-warning btn-sm">
                         View Analytics
                     </a>
                 </div>
